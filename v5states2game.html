@@ -1,0 +1,344 @@
+<!doctype html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>2 Player Game</title>
+  <style>* {padding: 0; margin: 0}</style>
+</head>
+  <script src="./libs/pixi.min.5.0.3.js"></script>
+  <script src="./libs/v5states2helper_functions.js"></script>
+  <script src="./libs/dust.js"></script>
+  <script src="./libs/pixi-sound.js"></script>
+<body>
+  <audio id="cantina" loop>
+  <source src="sounds/cantina2.mp3" type="audio/mpeg">
+  <source src="sounds/cantina2.ogg" type="audio/ogg">
+</audio>
+<audio id="combat" loop>
+  <source src="sounds/combat1.mp3" type="audio/mpeg">
+  <source src="sounds/combat1.ogg" type="audio/ogg">
+</audio>
+<audio id="gameover" loop>
+  <source src="sounds/gameover2.mp3" type="audio/mpeg">
+  <source src="sounds/gameover2.ogg" type="audio/ogg">
+</audio>
+
+
+
+  <script type="text/javascript">
+
+    /*
+// kludge to get gapless audio loop
+   document.getElementById("gameover").addEventListener('timeupdate', function(){
+                var buffer = .232
+                if(this.currentTime > this.duration - buffer){
+                    this.currentTime = 0
+                    this.play()
+                }}, false);
+*/
+
+// print out on console if we are using webgl or not
+    let type = "WebGL"
+    if(!PIXI.utils.isWebGLSupported()){
+      type = "canvas"
+    }
+
+    PIXI.utils.sayHello(type)
+
+
+PIXI.SCALE_MODES.DEFAULT = PIXI.SCALE_MODES.NEAREST;
+
+
+//Aliases
+let Application 	= PIXI.Application,
+    Container 		= PIXI.Container,
+    loader 				= PIXI.Loader.shared,
+    resources 		= PIXI.LoaderResource, 
+    Sprite 				= PIXI.Sprite,
+    TextureCache 	= PIXI.utils.TextureCache,
+    Graphics 			= PIXI.Graphics,
+    Text 					= PIXI.Text,
+    TextStyle 		= PIXI.TextStyle,
+    Rectangle 		= PIXI.Rectangle;
+
+
+// cheap workaround because I can't deactivate game loop, nor have I implemented change of state
+let LOOPING = false;
+//debug by stoping wall
+let WALLMOVE = true;
+let MUSIC = true;
+let MUSICVOLUME = 0.2;
+let STATE = 'menu';  // menu, playing, gameover
+
+// music handles
+gameoverMusic = document.getElementById('gameover');
+
+// ai player on ?
+let AI = true;
+
+// handy de-referencing for when we change game screeen/state
+let state = play;
+
+//Create a Pixi Application
+let app = new Application({width: 256, height: 256});
+
+
+//Add the canvas that Pixi automatically created for you to the HTML document
+document.body.appendChild(app.view);
+app.renderer.view.style.position = "absolute";
+app.renderer.view.style.display = "block";
+app.renderer.autoDesnsity = true;
+app.renderer.resize(window.innerWidth, window.innerHeight);
+
+// Load sprites and sounds 
+loader
+  .add("images/BlueShip.png")
+  .add("images/RedShip.png")
+  .add("images/redlaser.png")
+  .add("images/orangelaser.png")
+  .add("images/soft_block.png")
+  .add("images/hard_block.png")
+  .add("images/star.png")
+  .add("images/shipExplosionBlock.png")
+  .add("images/gameover.png")
+  .add("shipExpSnd", "sounds/ship_explosion.mp3")
+  .add("laserSnd", "sounds/laser1.mp3")
+  .add("expSnd", "sounds/explosion1.mp3")
+  .add("metalSnd", "sounds/metal.mp3")
+  .load(showIntro);
+
+
+const nBlocks = 41;
+const maxBullets = 20;
+const minFramesSinceLastShot = 20;
+const bulletSpeed = 20;
+let lastShotFrame1 = 61;
+let lastShotFrame2 = 61;
+const nWalls = 3;
+let walls = new Array(3);
+for (var i = 0; i<nWalls; i++) {
+  walls[i] = new Array(nBlocks);
+}
+let bullets1 = new Array(maxBullets);
+let bullets2 = new Array(maxBullets);
+let nextBullet1 = 0; // next bullet sprite to be fired 
+let nextBullet2 = 0; // next bullet sprite to be fired 
+
+let sHeight = window.innerHeight;
+let sWidth  = window.innerWidth;
+
+// sound objects
+let shipExpSnd;
+let expSnd;
+let metalSnd;
+let laserSnd;
+
+var Keys = {};
+var fireKey1 = false;
+var fireKey2 = false;
+
+window.onkeyup = function(e) {Keys[e.keyCode] = false; if (!e.shiftKey) {fireKey2 = false}; if (!Keys[71]) {fireKey1 = false};}
+window.onkeydown = function(e) { Keys[e.keyCode] = true; if (e.shiftKey) {fireKey2 = true}; if (Keys[71]) {fireKey1 = true}; if (Keys[32]) {MUSIC = !MUSIC; toggleAudio();} }
+
+
+// create the fucking dust handler
+let d = new Dust(PIXI);
+
+//let gameOverSplash; 
+//This `setup` function will run when the assets have loaded
+function setup() {
+
+  //remove everything on screen
+  clearScreen()
+
+  //stop intro music
+  if (MUSIC) {
+    document.getElementById('cantina').pause();
+    gameoverMusic.pause();
+  }
+
+  // assign sound shorthand objects
+  console.log(resources.shipExpSnd);
+  shipExpSnd    = PIXI.sound.Sound.from('sounds/ship_explosion.mp3'); // resources.shipExpSnd.sound
+  laserSnd      = PIXI.sound.Sound.from('sounds/laser1.mp3'); //resources.laserSnd.sound
+  expSnd        = PIXI.sound.Sound.from('sounds/explosion1.mp3'); //resources.expSnd.sound
+  metalSnd      = PIXI.sound.Sound.from('sounds/metal.mp3'); //resources.metalSnd.sound
+  expSnd.volume = 0.2;
+
+
+  // some global setups
+  nextBullet1 = 0; // next bullet sprite to be fired 
+  nextBullet2 = 0;
+  
+  //gameOverSplash = new Sprite(loader.resources["images/gameover.png"].texture);
+
+  // How high each pieace of wall will be, considering nBlocks blocks
+  blockHeight = sHeight/(nBlocks-1); // 1 block less because one block will be offscreen  
+  blockWidth  = blockHeight;   // blocks will be square for now
+
+  // create walls
+  let speedWall1 = Math.random()*1.8+0.2;
+  let speedWall2 = speedWall1 + (Math.random() > 0.5 ?  0.2 : -0.2);
+  populateWall(walls[0], sWidth*0.5-blockWidth*1.5, speedWall1, 5);
+  populateWall(walls[1], sWidth*0.5-blockWidth*0.5, Math.random()*1.8+0.2, 0);
+  populateWall(walls[2], sWidth*0.5+blockWidth*0.5, speedWall2, 5);
+
+  // create bullets
+  for (var i = 0; i<maxBullets; i++) {
+    let s1 = new Sprite(loader.resources["images/redlaser.png"].texture); 
+    let s2 = new Sprite(loader.resources["images/orangelaser.png"].texture); 
+    let scaleFact = (blockWidth*2)/s1.width; 
+    s1.scale.x = s2.scale.x = scaleFact; 
+    s1.scale.y = s2.scale.y = scaleFact; 
+    s1.active = s2.active = false;
+    s1.visible = s2.visible = false;
+    bullets1[i] = s1;
+    bullets2[i] = s2;
+    app.stage.addChild(bullets1[i]);
+    app.stage.addChild(bullets2[i]);
+  }
+
+
+  //Create the blue ship sprite
+  ship1 = new Sprite(loader.resources["images/BlueShip.png"].texture);
+	let scaleFact = (blockHeight*3)/ship1.height; 
+	ship1.scale.x = scaleFact; 
+	ship1.scale.y = scaleFact;
+  ship1.vx = 0;
+  ship1.vy = 0;
+  ship1.position.set(sWidth*0.2, window.innerHeight / 2);
+  //Add the ship to the stage
+  app.stage.addChild(ship1);
+
+  //Create the red ship sprite
+  ship2 = new Sprite(loader.resources["images/RedShip.png"].texture);
+	scaleFact = (blockHeight*3)/ship2.height; 
+	ship2.scale.x = scaleFact; 
+	ship2.scale.y = scaleFact;
+  ship2.vx = 0;
+  ship2.vy = 0;
+  ship2.position.set(window.innerWidth - ship2.width - sWidth*0.2 , window.innerHeight / 2);
+  //Add the ship to the stage
+  app.stage.addChild(ship2);
+
+	// kickoff game loop
+  if (!LOOPING) { 
+    LOOPING = true;
+    STATE = 'playing';
+    if (MUSIC) {
+      document.getElementById('combat').volume=MUSICVOLUME;
+      document.getElementById('combat').play();
+    }
+    app.ticker.add(delta => gameLoop(delta));
+  }
+
+}
+
+
+
+// main loop
+function gameLoop(delta){
+  state(delta);
+}
+
+
+// play loop
+function play(delta) {
+  d.update();
+
+  // react to keyboard input ship1
+  if (Keys[87]) {
+    ship1.vy = -5;
+  }
+  if (Keys[83]) {
+    ship1.vy = +5;
+  }
+  if (!Keys[87] && !Keys[83]) {
+    ship1.vy = 0;
+  }
+  if (Keys[68]) {
+    ship1.vx = +5;
+  }
+  if (Keys[65]) {
+    ship1.vx = -5;
+  }
+  if (!Keys[65] && !Keys[68]) {
+    ship1.vx = 0;
+  }
+
+
+  // react to keyboard input ship2
+  if (Keys[38]) {
+    ship2.vy = -5;
+  }
+  if (Keys[40]) {
+    ship2.vy = +5;
+  }
+  if (!Keys[40] && !Keys[38]) {
+    ship2.vy = 0;
+  }
+  if (Keys[39]) {
+    ship2.vx = +5;
+  }
+  if (Keys[37]) {
+    ship2.vx = -5;
+  }
+  if (!Keys[39] && !Keys[37]) {
+    ship2.vx = 0;
+  }
+
+
+
+  // check if shot fired. 
+  // only shoot after a number of frames after last shot
+  lastShotFrame1++;
+  //todo ... adjust for delta?
+  if (fireKey1  && lastShotFrame1 > minFramesSinceLastShot) {
+    lastShotFrame1 = 0;
+    fireShot(1);    
+  }
+  // same for ship 2 
+  // only shoot after a number of frames after last shot
+  lastShotFrame2++;
+  //todo ... adjust for delta?
+  if (fireKey2  && lastShotFrame2 > minFramesSinceLastShot) {
+    lastShotFrame2 = 0;
+    fireShot(2);    
+  }
+
+	moveBullets(1, delta);
+  moveBullets(2, delta);
+
+	moveShip(1, delta);
+	moveShip(2, delta);
+
+
+  // move walls        
+  if (WALLMOVE) {
+    for (var j = 0; j<nWalls; j++) {
+      for (var i = 0; i<nBlocks; i++) {
+        walls[j][i].x += walls[j][i].vx * delta;
+        walls[j][i].y += walls[j][i].vy * delta;
+        if (walls[j][i].vy > 0) { // if wall moving down 
+          if (walls[j][i].y > sHeight) {
+            walls[j][i].y = -blockHeight; // reposition offscreen at top
+          }
+        } else if ( walls[j][i].vy < 0 )  { // if wall moving up 
+          if (walls[j][i].y < -blockHeight) {
+            walls[j][i].y = sHeight;// + blockHeight; // reposition offscreen at top
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+  </script>
+</body>
+</html>
+

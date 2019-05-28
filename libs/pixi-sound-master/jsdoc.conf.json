@@ -1,0 +1,44 @@
+{
+    "tags": {
+        "allowUnknownTags": false
+    },
+    "source": {
+        "include": [
+            "./.docs/"
+        ],
+        "includePattern": ".+\\.js?$",
+        "excludePattern": "(^|\\/|\\\\)_"
+    },
+    "plugins": [
+        "plugins/markdown"
+    ],
+    "templates": {
+        "cleverLinks": false,
+        "monospaceLinks": false,
+        "default": {
+            "outputSourceFiles": false
+        },
+        "applicationName": "PixiJS Sound",
+        "footer": "Made with ♥ by Matt Karl (github.com/bigtimebuddy)",
+        "copyright": "PIXI Copyright &copy; 2017 Matt Karl.",
+        "linenums": false,
+        "googleAnalytics": "UA-103772589-1",
+        "meta": {
+            "title": "PIXI.sound API Documentation",
+            "description": "Documentation for PIXI.sound library",
+            "keyword": "docs, documentation, pixi, pixijs, webaudio, html5, audio, javascript, jsdoc"
+        }
+    },
+    "markdown": {
+        "parser": "gfm",
+        "hardwrap": false
+    },
+    "opts": {
+        "encoding": "utf8",
+        "recurse": true,
+        "private": false,
+        "lenient": true,
+        "destination": "./docs",
+        "template": "./node_modules/@pixi/jsdoc-template"
+    }
+}
