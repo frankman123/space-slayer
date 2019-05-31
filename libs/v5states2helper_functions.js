@@ -60,6 +60,7 @@ function showIntro() {
   startText.interactive = true;
   startText.click = function(e) {
     STATE = 'playing';
+    state = play;
     if (MUSIC) {
       gameoverMusic.pause();
       document.getElementById("cantina").pause();
@@ -163,12 +164,26 @@ function moveBullets(n, delta) {
       if (ship1.visible && ship2.visible) {
         if ( n == 1 ) {
           if (hitTestRectangle(b, ship2)) {
-            explodeShip(2);
+            b.visible = false;
+            setHealth(2, --healthShip2);
+            if (healthShip2 == 0) {
+              explodeShip(2);
+            }else{
+              strikeShip(2);
+            }
             break;
           }
         } else {
           if (hitTestRectangle(b, ship1)) {
-            explodeShip(1);
+            b.visible = false;
+            setHealth(1, --healthShip1);
+            console.log(healthShip1);
+            if (healthShip1 == 0) {
+              console.log(healthShip1);
+              explodeShip(1);
+            }else{
+              strikeShip(1);
+            }
             break;
           }
         }
@@ -269,11 +284,21 @@ function explodeWall(x,y,n) {
 }
 
 function explodeShip(n) {
+
+    let deadBullets;
+
 		if (n == 1) {
 			ship1.visible = false;
+      deadBullets = bullets1;
 		}else{
+      deadBullets = bullets2;
 			ship2.visible = false;
 		}
+    
+    for (let i = 0; i<maxBullets; i++) {
+      deadBullets[i].visible = false;
+    }
+
     // angle of explosioin (all around in this case)
     let minAng = 0;
     let maxAng = 2*Math.PI;
@@ -428,6 +453,7 @@ function hitTestRectangle(r1, r2) {
 }
 
 function displayMenu() {
+  state = gameOverLoop; //now we cycle through gameOverLoop... which just sits and waits 
   STATE = 'gameover'
   clearScreen();
   if (MUSIC) {
@@ -487,6 +513,7 @@ function displayMenu() {
       gameoverMusic.pause();  
     }
     STATE = 'playing';
+    state = play;  // change to play loop
     setTimeout(setup, 0)};
 
   const style3 = new PIXI.TextStyle({
@@ -513,6 +540,7 @@ function displayMenu() {
   introText.interactive = true;
   introText.click = function(e) {
     STATE = 'menu';
+    state = showIntroLoop;
     if (MUSIC) {
       document.getElementById('combat').pause();
       gameoverMusic.pause();
@@ -594,6 +622,26 @@ function audioIsPlaying(myAudio) {
   } else {
     return false;
   }
+}
+
+
+function setHealth(ship, h) {
+  let hs = ship == 1 ? healthSprite1 : healthSprite2;
+  hs.width = h*blockWidth;
+}
+
+function strikeShip(shipNum) {
+  sprite =  shipNum == 1 ? ship1 : ship2;
+  sprite.filters = [
+     new Filters.GlowFilter(15, 5, 1, 0xFF0000, 0.5)
+ ];
+  thudSnd.play();
+	setTimeout(unglowShip.bind(null, shipNum), 200)
+}
+
+function unglowShip(shipNum) {
+  sprite =  shipNum == 1 ? ship1 : ship2;
+	sprite.filters = [];
 }
 
 
