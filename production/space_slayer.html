@@ -226,9 +226,9 @@ function setup() {
   // create walls
   let speedWall1 = Math.random()*1.8+0.2;
   let speedWall2 = speedWall1 + (Math.random() > 0.5 ?  0.2 : -0.2);
-  populateWall(walls[0], sWidth*0.5-blockWidth*1.5, speedWall1, 5);
-  populateWall(walls[1], sWidth*0.5-blockWidth*0.5, Math.random()*1.8+0.2, 0);
-  populateWall(walls[2], sWidth*0.5+blockWidth*0.5, speedWall2, 5);
+  populateWall(walls[0], sWidth*0.5-blockWidth*1.5, speedWall1, 4);
+  populateWall(walls[1], sWidth*0.5-blockWidth*0.5, Math.random()*1.1+0.2, 0);
+  populateWall(walls[2], sWidth*0.5+blockWidth*0.5, speedWall2, 4);
 
   // create bullets
   for (var i = 0; i<maxBullets; i++) {
