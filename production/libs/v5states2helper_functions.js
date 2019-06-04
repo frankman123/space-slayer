@@ -5,6 +5,7 @@ function showIntro() {
   if (MUSIC) {
     gameoverMusic.pause();
     document.getElementById('combat').pause();
+    document.getElementById('cantina').currentTime = 0;
     document.getElementById('cantina').play();
   }
 
@@ -64,6 +65,7 @@ function showIntro() {
     if (MUSIC) {
       gameoverMusic.pause();
       document.getElementById("cantina").pause();
+      document.getElementById("combat").currentTime = 0;
       document.getElementById("combat").play();
     }
     
@@ -508,6 +510,7 @@ function displayMenu() {
   startText.interactive = true;
   startText.click = function(e) {
     if (MUSIC) {
+      document.getElementById('combat').currentTime = 0;
       document.getElementById('combat').play();
       document.getElementById('cantina').pause();  
       gameoverMusic.pause();  
@@ -544,6 +547,7 @@ function displayMenu() {
     if (MUSIC) {
       document.getElementById('combat').pause();
       gameoverMusic.pause();
+      document.getElementById('cantina').currentTime = 0;  
       document.getElementById('cantina').play();  
     }
     setTimeout(showIntro, 0)};
@@ -597,6 +601,7 @@ function toggleAudio() {
     if (audioIsPlaying(gameover)) {
       gameover.pause();
     }else {
+      gameover.currentTime = 0;
       gameover.play();
     }
   }
@@ -604,6 +609,7 @@ function toggleAudio() {
     if (audioIsPlaying(cantina)) {
       cantina.pause();
     }else {
+      cantina.currentTime = 0;
       cantina.play();
     }
   }
@@ -611,6 +617,7 @@ function toggleAudio() {
     if (audioIsPlaying(combat)) {
       combat.pause();
     }else {
+      combat.currentTime = 0;
       combat.play();
     }
   }
