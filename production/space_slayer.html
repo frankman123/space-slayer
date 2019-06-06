@@ -88,8 +88,8 @@ let app = new Application({width: 256, height: 256});
 
 //Create a (for now) static starfield
 //We'll be testing adding this to the over the main container, whatever that is.
-let starField = new PIXI.ParticleContainer();
-numberOfStars = 100;
+let starField = new PIXI.Container(); // new PIXI.ParticleContainer();
+numberOfStars = 50;
 SF_FOV = 250; // field of view  (?¿) where is the middle of focus?
 
 //Add the canvas that Pixi automatically created for you to the HTML document
@@ -139,6 +139,12 @@ let nextBullet2 = 0; // next bullet sprite to be fired
 let sHeight = window.innerHeight;
 let sWidth  = window.innerWidth;
 
+// How high each piece of wall will be, considering nBlocks blocks
+// (wall block dimensions will serve as the basis for the size of many elements in the game)
+let  blockHeight = sHeight/(nBlocks-1); // 1 block less because one block will be offscreen  
+let  blockWidth  = blockHeight;   // blocks will be square for now
+
+
 // health and healthbar sprites
 let healthShip1;
 let healthShip2;
@@ -165,7 +171,7 @@ let d = new Dust(PIXI);
 
 // things that need to be done only once, after assets have loaded
 function initialSetup() {
-  console.log("adding ticker?");
+ 
   app.ticker.add(delta => gameLoop(delta));
   starField.x = 0;
   starField.y = 0;
@@ -177,7 +183,7 @@ function initialSetup() {
     star.fx = Math.random()*500-250;
     star.fy = Math.random()*500-250;
     star.fz = Math.random()*500-250;  // depth  , will this work?
-    star.vz = -1;  // speed towards camera
+    star.vz = -3;  // speed towards camera
     starField.addChild(star);
   }
   showIntro();
@@ -186,10 +192,6 @@ function initialSetup() {
 //This `setup` function will run when the assets have loaded
 function setup() {
 
-  // How high each piece of wall will be, considering nBlocks blocks
-  // (wall block dimensions will serve as the basis for the size of many elements in the game)
-  blockHeight = sHeight/(nBlocks-1); // 1 block less because one block will be offscreen  
-  blockWidth  = blockHeight;   // blocks will be square for now
 
   //remove everything on screen
   clearScreen()
@@ -315,7 +317,6 @@ function gameLoop(delta){
 
 // play loop
 function play(delta) {
-  console.log("playloop");
   d.update();
 
   // react to keyboard input ship1
@@ -406,7 +407,6 @@ function play(delta) {
 }
 
 function gameOverLoop(delta) {
-  console.log("gameoverloop");
   // do nothing I guess ?
 }
 
@@ -415,7 +415,8 @@ function showIntroLoop(delta) {
   let i = starField.children.length;
   while (i--) {
     let s = starField.children[i];
-    s.scale.set(Math.random());//(s.fz+500)/1000);    
+    s.height = blockWidth/2;  // until I figure a way to scale perspective correctly 
+    s.width = blockWidth/2;    
     var scale = SF_FOV/(SF_FOV + s.fz);
     s.x = s.fx * scale + sWidth/2;
     s.y = s.fy * scale + sHeight/2;

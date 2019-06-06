@@ -100,7 +100,6 @@ function showIntro() {
 
   app.stage.addChild(introText);
   state = showIntroLoop;
-  console.log(state);
 }
  
 function populateWall(w, position, speed, indestructibles) {
@@ -187,9 +186,7 @@ function moveBullets(n, delta) {
           if (hitTestRectangle(b, ship1)) {
             b.visible = false;
             setHealth(1, --healthShip1);
-            console.log(healthShip1);
             if (healthShip1 == 0) {
-              console.log(healthShip1);
               explodeShip(1);
             }else{
               strikeShip(1);
