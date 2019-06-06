@@ -2,6 +2,11 @@
 
 function showIntro() {
   clearScreen();
+
+  // add a starfield to menu scenes
+  app.stage.addChild(starField);
+
+  // change music
   if (MUSIC) {
     gameoverMusic.pause();
     document.getElementById('combat').pause();
@@ -9,6 +14,7 @@ function showIntro() {
     document.getElementById('cantina').play();
   }
 
+  // Title text
   const style1 = new PIXI.TextStyle({
       fontFamily: 'Arial',
       fontSize: 86,
@@ -36,7 +42,7 @@ function showIntro() {
      
 
 
-
+  // Click to start Text 
   const style2 = new PIXI.TextStyle({
       fontFamily: 'Arial',
       fontSize: 46,
@@ -71,7 +77,7 @@ function showIntro() {
     
     setTimeout(setup, 0)}; 
 
-
+  // Keyboard controls explanations text
   const style3 = new PIXI.TextStyle({
       fontFamily: 'Arial',
       fontSize: 26,
@@ -93,6 +99,8 @@ function showIntro() {
   introText.y = sHeight*3/4 - introText.height/2;
 
   app.stage.addChild(introText);
+  state = showIntroLoop;
+  console.log(state);
 }
  
 function populateWall(w, position, speed, indestructibles) {

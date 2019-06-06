@@ -70,7 +70,7 @@ let Application 	= PIXI.Application,
 let LOOPING = false;
 //debug by stoping wall
 let WALLMOVE = true;
-let MUSIC = true;
+let MUSIC = false//true;
 let MUSICVOLUME = 0.2;
 let STATE = 'menu';  // menu, playing, gameover
 
@@ -81,17 +81,22 @@ gameoverMusic = document.getElementById('gameover');
 let AI = true;
 
 // handy de-referencing for when we change game screeen/state
-let state = play;
+let state = idleLoop;
 
 //Create a Pixi Application
 let app = new Application({width: 256, height: 256});
 
+//Create a (for now) static starfield
+//We'll be testing adding this to the over the main container, whatever that is.
+let starField = new PIXI.ParticleContainer();
+numberOfStars = 100;
+SF_FOV = 250; // field of view  (?¿) where is the middle of focus?
 
 //Add the canvas that Pixi automatically created for you to the HTML document
 document.body.appendChild(app.view);
 app.renderer.view.style.position = "absolute";
 app.renderer.view.style.display = "block";
-app.renderer.autoDesnsity = true;
+app.renderer.autoDensity = true;
 app.renderer.resize(window.innerWidth, window.innerHeight);
 
 // Load sprites and sounds 
@@ -112,7 +117,7 @@ loader
   .add("thudSnd", "sounds/explosion1.{ogg,mp3}")
   .add("metalSnd", "sounds/metal.{ogg,mp3}")
   .add("expSnd", "sounds/thud.{ogg,mp3}")
-  .load(showIntro);
+  .load(initialSetup);
 
 
 const nBlocks = 41;
@@ -158,7 +163,26 @@ window.onkeydown = function(e) { Keys[e.keyCode] = true; if (e.shiftKey) {fireKe
 // create the fucking dust handler
 let d = new Dust(PIXI);
 
-//let gameOverSplash; 
+// things that need to be done only once, after assets have loaded
+function initialSetup() {
+  console.log("adding ticker?");
+  app.ticker.add(delta => gameLoop(delta));
+  starField.x = 0;
+  starField.y = 0;
+  starField.width = sWidth;
+  starField.height = sHeight;
+  for (let i = 0; i < numberOfStars; ++i) {
+    let star = new Sprite(loader.resources["images/star.png"].texture);
+    star.anchor.set(0.5);
+    star.fx = Math.random()*500-250;
+    star.fy = Math.random()*500-250;
+    star.fz = Math.random()*500-250;  // depth  , will this work?
+    star.vz = -1;  // speed towards camera
+    starField.addChild(star);
+  }
+  showIntro();
+}
+
 //This `setup` function will run when the assets have loaded
 function setup() {
 
@@ -274,10 +298,9 @@ function setup() {
     STATE = 'playing';
     if (MUSIC) {
       document.getElementById('combat').volume=MUSICVOLUME;
-      document.getElementById('combat').currentTime = 0:
+      document.getElementById('combat').currentTime = 0;
       document.getElementById('combat').play();
     }
-    app.ticker.add(delta => gameLoop(delta));
   }
 
 }
@@ -292,6 +315,7 @@ function gameLoop(delta){
 
 // play loop
 function play(delta) {
+  console.log("playloop");
   d.update();
 
   // react to keyboard input ship1
@@ -382,13 +406,31 @@ function play(delta) {
 }
 
 function gameOverLoop(delta) {
+  console.log("gameoverloop");
   // do nothing I guess ?
 }
 
 function showIntroLoop(delta) {
-  // do nothing I guess ?
+  // move stars in starfield
+  let i = starField.children.length;
+  while (i--) {
+    let s = starField.children[i];
+    s.scale.set(Math.random());//(s.fz+500)/1000);    
+    var scale = SF_FOV/(SF_FOV + s.fz);
+    s.x = s.fx * scale + sWidth/2;
+    s.y = s.fy * scale + sHeight/2;
+    s.fz += s.vz;
+    if (s.fz < -SF_FOV) {
+      s.fz += 2*SF_FOV;
+      s.fx = Math.random()*1500-750; 
+      s.fy = Math.random()*1500-750; 
+    }
+  }
 }
 
+function idleLoop(delta) {
+  //do nothing
+}
 
 
   </script>
