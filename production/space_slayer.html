@@ -71,6 +71,12 @@ let AI = true;
 // handy de-referencing for when we change game screeen/state
 let state = idle;
 
+// spitesheet containging blocks
+let sheet;
+let softTexture;
+let hardTexture;
+let healTexture;
+
 //Create a Pixi Application
 let app = new Application({width: 256, height: 256, forceCanvas:false});
 
@@ -114,6 +120,7 @@ loader
   .add("images/gameover.png")
   .add("images/Ship1HealthBar.png")
   .add("images/Ship2HealthBar.png")
+  .add( "blockSheet", "images/icon_sheet.json")
   .add("shipExpSnd", "sounds/ship_explosion.{ogg,mp3}")
   .add("laserSnd", "sounds/laser1.{ogg,mp3}")
   .add("thudSnd", "sounds/explosion1.{ogg,mp3}")
@@ -147,11 +154,14 @@ let sWidth  = window.innerWidth;
 let  blockHeight = sHeight/(nBlocks-1); // 1 block less because one block will be offscreen  
 let  blockWidth  = blockHeight;   // blocks will be square for now
 
+
 // health and healthbar sprites
 let healthShip1;
 let healthShip2;
 let healthSprite1;
 let healthSprite2;
+
+let maxShipHealth = 10; // maximum health is 10 
 
 // sound objects
 let shipExpSnd;
@@ -188,6 +198,12 @@ function initialSetup() {
     star.vz = -3;  // speed towards camera
     starField.addChild(star);
   }
+
+  // assign block textures from spritesheet
+  sheet = loader.resources.blockSheet; 
+  softTexture = sheet.textures["soft_block.png"];
+  hardTexture = sheet.textures["hard_block.png"];
+  healTexture = sheet.textures["health-icon70.png"];
 
   // assign sound shorthand objects
   shipExpSnd    = loader.resources.shipExpSnd.sound;
@@ -241,7 +257,7 @@ function setup() {
   clearScreen()
 
   // reset ship health
-  healthShip1 = 10;
+  healthShip1 = maxShipHealth;
   healthShip2 = healthShip1;
 
   //stop intro music
@@ -282,11 +298,11 @@ function setup() {
   
 
   // create walls
-  let speedWall1 = Math.random()*1.8+0.2;
+  let speedWall1 = Math.random()+1.5;
   let speedWall2 = speedWall1 + (Math.random() > 0.5 ?  0.2 : -0.2);
-  populateWall(walls[0], sWidth*0.5-blockWidth*1.5, speedWall1, 4);
+  populateWall(walls[0], sWidth*0.5-blockWidth*1.5, speedWall1, 3);
   populateWall(walls[1], sWidth*0.5-blockWidth*0.5, Math.random()*1.1+0.2, 0);
-  populateWall(walls[2], sWidth*0.5+blockWidth*0.5, speedWall2, 4);
+  populateWall(walls[2], sWidth*0.5+blockWidth*0.5, speedWall2, 3);
 
 
 

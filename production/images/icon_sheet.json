@@ -18,7 +18,7 @@
 },
 "soft_block.png":
 {
-	"frame": {"x":140,"y":0,"w":70,"h":70},
+	"frame": {"x":141,"y":0,"w":69,"h":70},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":70,"h":70},

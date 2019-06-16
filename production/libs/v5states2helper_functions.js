@@ -17,10 +17,10 @@ function populateWall(w, position, speed, indestructibles) {
     let indestructible = false;
 		if(indes.indexOf(i) != -1) {
 			indestructible = true;
-			//w[i].tint = 0xAA0000; // old way of distinguishing blocks
 		}
 
-    let s = new Sprite(loader.resources[indestructible ? "images/hard_block.png" : "images/soft_block.png"].texture);
+    //let s = new Sprite(loader.resources[indestructible ? "images/hard_block.png" : "images/soft_block.png"].texture);
+    let s = new Sprite(indestructible ? hardTexture : softTexture);
     s.indestructible = indestructible;
     s.x = position;  // position of wall horizonally
     if (speed > 0) {
@@ -59,7 +59,7 @@ function moveBullets(n, delta) {
         if ( n == 1 ) {
           if (hitTestRectangle(b, ship2)) {
             b.visible = false;
-            setHealth(2, --healthShip2);
+            setHealth(2, healthShip2-1);
             if (healthShip2 == 0) {
               explodeShip(2);
             }else{
@@ -70,7 +70,7 @@ function moveBullets(n, delta) {
         } else {
           if (hitTestRectangle(b, ship1)) {
             b.visible = false;
-            setHealth(1, --healthShip1);
+            setHealth(1, healthShip1-1);
             if (healthShip1 == 0) {
               explodeShip(1);
             }else{
@@ -88,13 +88,8 @@ function moveBullets(n, delta) {
             if (hitTestRectangle(b, w)) {
               if (w.thanos) {
                 b.visible = false;
-                let health = n == 1 ? healthShip1 - 5 : healthShip2 - 5;
-                setHealth(n, health - 5);
-                if (healthShip1 <= 0) {
-                  explodeShip(1);
-                }else{
-                  strikeShip(1);
-                }
+                let health = n == 1 ? healthShip1 : healthShip2;
+                setHealth(n, health + 3);
               }else{
                 if (w.indestructible) {  // block is indestructible?
                   b.visible = false;
@@ -393,7 +388,19 @@ function audioIsPlaying(myAudio) {
 
 
 function setHealth(ship, h) {
+  if (h < 0) {
+    h = 0;
+  }else if (h > maxShipHealth) {
+    h= maxShipHealth;
+  }
   let hs = ship == 1 ? healthSprite1 : healthSprite2;
+  if (ship == 1) {
+    healthShip1 = h;
+  }else{
+    healthShip2 = h;
+  }
+  let health = ship == 1 ? healthSprite1 : healthSprite2;
+  
   hs.width = h*blockWidth;
 }
 
@@ -430,14 +437,16 @@ let i = starField.children.length;
 }
 
 function thanosBlock(s) {
-  s.filters = [
+  s.texture = healTexture;
+  /*s.texture = [
      new Filters.GlowFilter(25, 25, 1, 0xFF00FF, 0.5)
   ];
+  */
   s.thanos = true;
   s.visible = true;
   timeForThanos = 10 * FPS; 
 }
 
 function unThanosBlock(s) {
-
+  s.texture = softTexture;
 }
