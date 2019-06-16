@@ -1,118 +1,8 @@
 // helper functions
 
-function showIntro() {
-  clearScreen();
-
-  // add a starfield to menu scenes
-  app.stage.addChild(starField);
-
-  // change music
-  if (MUSIC) {
-    gameoverMusic.pause();
-    document.getElementById('combat').pause();
-    document.getElementById('cantina').currentTime = 0;
-    document.getElementById('cantina').play();
-  }
-
-  // Title text
-  const style1 = new PIXI.TextStyle({
-      fontFamily: 'Arial',
-      fontSize: 86,
-      fontStyle: 'italic',
-      fontWeight: 'bold',
-      fill: ['#ffffff', '#FF0000'], // gradient
-      stroke: '#4a1850',
-      strokeThickness: 25,
-      dropShadow: true,
-      dropShadowColor: '#000000',
-      dropShadowBlur: 4,
-      dropShadowAngle: Math.PI / 6,
-      dropShadowDistance: 6,
-      wordWrap: true,
-      wordWrapWidth: sWidth,
-  });
-  const titleText = new PIXI.Text('SPACE SLAYER!', style1);
-  titleText.x = sWidth/2 - titleText.width/2;
-  titleText.y = sHeight/4 - titleText.height/2;
-
-  app.stage.addChild(titleText);
-  titleText.interactive = true;
-  titleText.click = function(e) {
-  }; 
-     
-
-
-  // Click to start Text 
-  const style2 = new PIXI.TextStyle({
-      fontFamily: 'Arial',
-      fontSize: 46,
-      fontStyle: 'italic',
-      fontWeight: 'bold',
-      fill: ['#ffffff', '#222222'], // gradient
-      stroke: '#4a1850',
-      strokeThickness: 5,
-      dropShadow: true,
-      dropShadowColor: '#000000',
-      dropShadowBlur: 4,
-      dropShadowAngle: Math.PI / 6,
-      dropShadowDistance: 6,
-      wordWrap: true,
-      wordWrapWidth: sWidth,
-  });
-  const startText = new PIXI.Text('CLICK TO START', style2);
-  startText.x = sWidth/2 - startText.width/2;
-  startText.y = sHeight/2 - startText.height/2;
-
-  app.stage.addChild(startText);
-  startText.interactive = true;
-  startText.click = function(e) {
-    STATE = 'playing';
-    state = play;
-    if (MUSIC) {
-      gameoverMusic.pause();
-      document.getElementById("cantina").pause();
-      document.getElementById("combat").currentTime = 0;
-      document.getElementById("combat").play();
-    }
-    
-    setTimeout(setup, 0)}; 
-
-  // Keyboard controls explanations text
-  const style3 = new PIXI.TextStyle({
-      fontFamily: 'Arial',
-      fontSize: 26,
-      fontStyle: 'italic',
-      fontWeight: 'bold',
-      fill: ['#ffffff', '#00ff99'], // gradient
-      stroke: '#4a1850',
-      strokeThickness: 5,
-      dropShadow: true,
-      dropShadowColor: '#000000',
-      dropShadowBlur: 4,
-      dropShadowAngle: Math.PI / 6,
-      dropShadowDistance: 6,
-      wordWrap: true,
-      wordWrapWidth: sWidth,
-  });
-  const introText = new PIXI.Text('Ship 1: W,A,S,D - fire: G\nShip 2: Arrow keys - fire: shift\nMusic On/Off: SPACEBAR', style3);
-  introText.x = sWidth/2 - introText.width/2;
-  introText.y = sHeight*3/4 - introText.height/2;
-
-  app.stage.addChild(introText);
-  state = showIntroLoop;
-}
- 
 function populateWall(w, position, speed, indestructibles) {
 	// naive algorithm for selection of indestructible blocks
   
-  // Instead of sprinkling indestructible blocks randombly like so .... 
-	/*var indes = []
-	while(indes.length < indestructibles){
-   	var r = Math.floor(Math.random()*nBlocks);
-   	if(indes.indexOf(r) === -1) indes.push(r);
-	}
-  */
-
   // ... form a small wall
   var r = Math.floor(Math.random()*nBlocks); // starting point
 	var indes = []
@@ -143,7 +33,7 @@ function populateWall(w, position, speed, indestructibles) {
     //s.alpha = Math.random();
     s.vx = 0; // no horizontal speed
     s.vy = speed; // downward motion
-    s.destroyed = false;
+    s.thanos = false;
     w[i] = s;
 		// will it be indestructible ?
     app.stage.addChild(w[i]);
@@ -151,11 +41,6 @@ function populateWall(w, position, speed, indestructibles) {
 }
 
 function moveBullets(n, delta) {
-  //debug ship explosion
-  //if (ship1.visible) {
-  //explodeShip(1);
-  //}
-  //return;
   let ship = n == 1 ? ship1 : ship2;
   if (!ship.visible) {
     return;
@@ -201,36 +86,35 @@ function moveBullets(n, delta) {
           let w = walls[z][j]; //convenience;
           if (w.visible) {
             if (hitTestRectangle(b, w)) {
-							if (w.indestructible) {  // block is indestructible?
-								b.visible = false;
-                metalSnd.play();
-								break;
-							}	
+              if (w.thanos) {
+                b.visible = false;
+                let health = n == 1 ? healthShip1 - 5 : healthShip2 - 5;
+                setHealth(n, health - 5);
+                if (healthShip1 <= 0) {
+                  explodeShip(1);
+                }else{
+                  strikeShip(1);
+                }
+              }else{
+                if (w.indestructible) {  // block is indestructible?
+                  b.visible = false;
+                  metalSnd.play();
+                  break;
+                }	
+              }
               b.visible = false;
               w.visible = false;
+              w.thanos  = false;
               explodeWall(w.x + w.width/2, w.y + w.height/2, n)
               break;
-            }
-          }
-          w = walls[z][j]; // convenience
-          if (w.visible) {
-            if (hitTestRectangle(b, w)) {
-							if (w.indestructible) {  // block is indestructible?
-								b.visible = false;
-                metalSnd.play();
-								break;
-							}	
-              b.visible = false;
-              w.visible = false;
-              explodeWall(w.x + w.width/2, w.y + w.height/2, n)
-              break;
-            }
-          }
-        }
-      }
-    }
-  }
-}
+            } // hit block 
+          }  // block visible 
+        } // wall loop
+      } // block loop
+    } // if bullet visible 
+  }  // bullet loop 
+
+} // function
 
 function moveShip(n, delta) {
   let ship = n == 1 ? ship1 : ship2;
@@ -271,7 +155,7 @@ function explodeWall(x,y,n) {
     // play sound
     expSnd.play();
 
-    d.create(
+    dust.create(
     x,
     y,
       () => new PIXI.Sprite(                     //Sprite function
@@ -289,6 +173,8 @@ function explodeWall(x,y,n) {
     0.05, 0.1                             //Min/max rotation speed
     );
 }
+
+
 
 function explodeShip(n) {
 
@@ -314,7 +200,7 @@ function explodeShip(n) {
     // play sound
     shipExpSnd.play();
 
-    d.create(
+    dust.create(
     ship.x+ship.width/2,
     ship.y+ship.height/2,
       () => new PIXI.Sprite(                     //Sprite function
@@ -459,150 +345,19 @@ function hitTestRectangle(r1, r2) {
   return hit;
 }
 
-function displayMenu() {
-  state = gameOverLoop; //now we cycle through gameOverLoop... which just sits and waits 
-  STATE = 'gameover'
-  clearScreen();
-  if (MUSIC) {
-    document.getElementById('combat').pause();
-    document.getElementById('cantina').pause();
-    gameoverMusic.currentTime = 0;
-    gameoverMusic.play();
-  }
-  const style1 = new PIXI.TextStyle({
-      fontFamily: 'Arial',
-      fontSize: 46,
-      fontStyle: 'italic',
-      fontWeight: 'bold',
-      fill: ['#ffffff', '#FF0000'], // gradient
-      stroke: '#4a1850',
-      strokeThickness: 5,
-      dropShadow: true,
-      dropShadowColor: '#000000',
-      dropShadowBlur: 4,
-      dropShadowAngle: Math.PI / 6,
-      dropShadowDistance: 6,
-      wordWrap: true,
-      wordWrapWidth: sWidth,
-  });
-  const titleText = new PIXI.Text('GAME OVER', style1);
-  titleText.x = sWidth/2 - titleText.width/2;
-  titleText.y = sHeight/4 - titleText.height/2;
-
-  app.stage.addChild(titleText);
-
-  const style2 = new PIXI.TextStyle({
-      fontFamily: 'Arial',
-      fontSize: 46,
-      fontStyle: 'italic',
-      fontWeight: 'bold',
-      fill: ['#ffffff', '#222222'], // gradient
-      stroke: '#4a1850',
-      strokeThickness: 5,
-      dropShadow: true,
-      dropShadowColor: '#000000',
-      dropShadowBlur: 4,
-      dropShadowAngle: Math.PI / 6,
-      dropShadowDistance: 6,
-      wordWrap: true,
-      wordWrapWidth: sWidth,
-  });
-  const startText = new PIXI.Text('PLAY AGAIN', style2);
-  startText.x = sWidth/2 - startText.width/2;
-  startText.y = sHeight/2 - startText.height/2;
-
-  app.stage.addChild(startText);
-  startText.interactive = true;
-  startText.click = function(e) {
-    if (MUSIC) {
-      document.getElementById('combat').currentTime = 0;
-      document.getElementById('combat').play();
-      document.getElementById('cantina').pause();  
-      gameoverMusic.pause();  
-    }
-    STATE = 'playing';
-    state = play;  // change to play loop
-    setTimeout(setup, 0)};
-
-  const style3 = new PIXI.TextStyle({
-      fontFamily: 'Arial',
-      fontSize: 26,
-      fontStyle: 'italic',
-      fontWeight: 'bold',
-      fill: ['#ffffff', '#00ff99'], // gradient
-      stroke: '#4a1850',
-      strokeThickness: 5,
-      dropShadow: true,
-      dropShadowColor: '#000000',
-      dropShadowBlur: 4,
-      dropShadowAngle: Math.PI / 6,
-      dropShadowDistance: 6,
-      wordWrap: true,
-      wordWrapWidth: sWidth,
-  });
-  const introText = new PIXI.Text('BACK TO INTRO', style3);
-  introText.x = sWidth/2 - introText.width/2;
-  introText.y = sHeight*3/4 - introText.height/2;
-
-  app.stage.addChild(introText);
-  introText.interactive = true;
-  introText.click = function(e) {
-    STATE = 'menu';
-    state = showIntroLoop;
-    if (MUSIC) {
-      document.getElementById('combat').pause();
-      gameoverMusic.pause();
-      document.getElementById('cantina').currentTime = 0;  
-      document.getElementById('cantina').play();  
-    }
-    setTimeout(showIntro, 0)};
-}
-
-
-function displayMenu2() {
-  clearScreen();
-  gameOverSplash.width = 0.70*sWidth; 
-  gameOverSplash.width = 0.50*sHeight; 
-  gameOverSplash.x = sWidth/2 -gameOverSplash.width/2;
-  gameOverSplash.y = sHeight/2 -gameOverSplash.height/2;
-  gameOverSplash.interactive = true;
-
-  gameOverSplash.on("mouseup", onSplashUp);
-  
-  app.stage.addChild(gameOverSplash);
-}
-
-function onSplashUp() {
-  app.stage.removeChild(gameOverSplash);
-  setup();
-}
-
 function clearScreen() {
   for (var i = app.stage.children.length - 1; i >= 0; i--) {	
     app.stage.removeChild(app.stage.children[i]);
   }
-
-  /*
-  // forget bullets and wall blocks
-  for (j = 0; j < nWalls; j++) {
-    for (i = 0; i<nBlocks; i++) {
-      walls[j][i] = undefined;
-    }
-  }
-
-  for (i = 0; i<maxBullets; i++) {
-    bullets1[i] = undefined;
-    bullets1[i] = undefined;
-  }
-*/
 }
+
 
 function toggleAudio() {
 
   let cantina = document.getElementById('cantina');
   let combat = document.getElementById('combat')
   let gameover = document.getElementById('gameover')
-  if (STATE == 'gameover') {
+  if (state  === game_over) {
     if (audioIsPlaying(gameover)) {
       gameover.pause();
     }else {
@@ -610,7 +365,7 @@ function toggleAudio() {
       gameover.play();
     }
   }
-  if (STATE == 'menu') {
+  if (state === intro) {
     if (audioIsPlaying(cantina)) {
       cantina.pause();
     }else {
@@ -618,7 +373,7 @@ function toggleAudio() {
       cantina.play();
     }
   }
-  if (STATE == 'playing') {
+  if (state === play) {
     if (audioIsPlaying(combat)) {
       combat.pause();
     }else {
@@ -656,4 +411,33 @@ function unglowShip(shipNum) {
 	sprite.filters = [];
 }
 
+function updateStarfield(delta) {
+let i = starField.children.length;
+  while (i--) {
+    let s = starField.children[i];
+    s.height = blockWidth/2;  // until I figure a way to scale perspective correctly 
+    s.width = blockWidth/2;    
+    var scale = SF_FOV/(SF_FOV + s.fz);
+    s.x = s.fx * scale + sWidth/2;
+    s.y = s.fy * scale + sHeight/2;
+    s.fz += s.vz;
+    if (s.fz < -SF_FOV) {
+      s.fz += 2*SF_FOV*delta;
+      s.fx = Math.random()*1500-750; 
+      s.fy = Math.random()*1500-750; 
+    }
+  }
+}
 
+function thanosBlock(s) {
+  s.filters = [
+     new Filters.GlowFilter(25, 25, 1, 0xFF00FF, 0.5)
+  ];
+  s.thanos = true;
+  s.visible = true;
+  timeForThanos = 10 * FPS; 
+}
+
+function unThanosBlock(s) {
+
+}

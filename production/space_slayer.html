@@ -1,13 +1,13 @@
-<doctype html>
-
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>2 Player Game</title>
   <style>* {padding: 0; margin: 0}</style>
 </head>
-  <script src="./libs/pixi.min.5.0.3.js"></script>
+  <script src="./libs/pixi-legacy.min.js"></script>
   <script src="./libs/v5states2helper_functions.js"></script>
+  <script src="./libs/intermediate_screens.js"></script>
   <script src="./libs/dust.js"></script>
   <script src="./libs/pixi-sound.js"></script>
   <script src="./libs/pixi-filters.js"></script>
@@ -29,26 +29,18 @@
 
   <script type="text/javascript">
 
-    /*
-// kludge to get gapless audio loop
-   document.getElementById("gameover").addEventListener('timeupdate', function(){
-                var buffer = .232
-                if(this.currentTime > this.duration - buffer){
-                    this.currentTime = 0
-                    this.play()
-                }}, false);
-*/
 
 // print out on console if we are using webgl or not
-    let type = "WebGL"
-    if(!PIXI.utils.isWebGLSupported()){
-      type = "canvas"
-    }
+let type = "WebGL"
+if(!PIXI.utils.isWebGLSupported()){
+  type = "canvas"
+}
+PIXI.utils.sayHello(type)
 
-    PIXI.utils.sayHello(type)
 
-
+// hoping this gets rid of gaps in "tiles" ... not really working I think
 PIXI.SCALE_MODES.DEFAULT = PIXI.SCALE_MODES.NEAREST;
+
 
 
 //Aliases
@@ -64,15 +56,11 @@ let Application 	= PIXI.Application,
     Rectangle 		= PIXI.Rectangle,
     Filters       = PIXI.filters;
 
-//let colorMatrix = new PIXI.filters.ColorMatrixFilter();
 
-// cheap workaround because I can't deactivate game loop, nor have I implemented change of state
-let LOOPING = false;
 //debug by stoping wall
 let WALLMOVE = true;
 let MUSIC = true;
 let MUSICVOLUME = 0.2;
-let STATE = 'menu';  // menu, playing, gameover
 
 // music handles
 gameoverMusic = document.getElementById('gameover');
@@ -81,16 +69,18 @@ gameoverMusic = document.getElementById('gameover');
 let AI = true;
 
 // handy de-referencing for when we change game screeen/state
-let state = idleLoop;
+let state = idle;
 
 //Create a Pixi Application
-let app = new Application({width: 256, height: 256});
+let app = new Application({width: 256, height: 256, forceCanvas:false});
 
-//Create a (for now) static starfield
+//Create a starfield
 //We'll be testing adding this to the over the main container, whatever that is.
 let starField = new PIXI.Container(); // new PIXI.ParticleContainer();
 numberOfStars = 50;
-SF_FOV = 250; // field of view  (?¿) where is the middle of focus?
+let SF_FOV = 250; // field of view  (?¿) where is the middle of focus?
+let FPS = app.ticker.FPS
+console.log("FPS = "+FPS);
 
 //Add the canvas that Pixi automatically created for you to the HTML document
 document.body.appendChild(app.view);
@@ -98,6 +88,18 @@ app.renderer.view.style.position = "absolute";
 app.renderer.view.style.display = "block";
 app.renderer.autoDensity = true;
 app.renderer.resize(window.innerWidth, window.innerHeight);
+
+console.log(app.renderer.type);
+if (app.renderer.type == 1) {
+
+console.log('Using WebGL');
+
+} else {
+
+console.log('Using Canvas');
+
+};
+
 
 // Load sprites and sounds 
 loader
@@ -126,6 +128,7 @@ const minFramesSinceLastShot = 20;
 const bulletSpeed = 20;
 let lastShotFrame1 = 61;
 let lastShotFrame2 = 61;
+let timeForThanos  = 10 * FPS; // how many seconds (clicks) until next thanos block 
 const nWalls = 3;
 let walls = new Array(3);
 for (var i = 0; i<nWalls; i++) {
@@ -143,7 +146,6 @@ let sWidth  = window.innerWidth;
 // (wall block dimensions will serve as the basis for the size of many elements in the game)
 let  blockHeight = sHeight/(nBlocks-1); // 1 block less because one block will be offscreen  
 let  blockWidth  = blockHeight;   // blocks will be square for now
-
 
 // health and healthbar sprites
 let healthShip1;
@@ -167,12 +169,12 @@ window.onkeydown = function(e) { Keys[e.keyCode] = true; if (e.shiftKey) {fireKe
 
 
 // create the fucking dust handler
-let d = new Dust(PIXI);
+let dust = new Dust(PIXI);
 
 // things that need to be done only once, after assets have loaded
 function initialSetup() {
- 
-  app.ticker.add(delta => gameLoop(delta));
+
+  // create pretty starfield container for backround
   starField.x = 0;
   starField.y = 0;
   starField.width = sWidth;
@@ -186,6 +188,48 @@ function initialSetup() {
     star.vz = -3;  // speed towards camera
     starField.addChild(star);
   }
+
+  // assign sound shorthand objects
+  shipExpSnd    = loader.resources.shipExpSnd.sound;
+  laserSnd      = loader.resources.laserSnd.sound;
+  expSnd        = loader.resources.expSnd.sound; 
+  metalSnd      = loader.resources.metalSnd.sound;
+  thudSnd       = loader.resources.thudSnd.sound;
+  expSnd.volume = 0.2;
+
+  // create health bars that indicate ships defence level
+  healthSprite1 = new Sprite(loader.resources["images/Ship1HealthBar.png"].texture); 
+  healthSprite2 = new Sprite(loader.resources["images/Ship2HealthBar.png"].texture); 
+
+  //Create the blue ship sprite
+  ship1 = new Sprite(loader.resources["images/BlueShip.png"].texture);
+	let scaleFact = (blockHeight*3)/ship1.height; 
+	ship1.scale.x = scaleFact; 
+	ship1.scale.y = scaleFact;
+
+  //Create the red ship sprite
+  ship2 = new Sprite(loader.resources["images/RedShip.png"].texture);
+	scaleFact = (blockHeight*3)/ship2.height; 
+	ship2.scale.x = scaleFact; 
+	ship2.scale.y = scaleFact;
+
+  // create bullets
+  for (var i = 0; i<maxBullets; i++) {
+    let s1 = new Sprite(loader.resources["images/redlaser.png"].texture); 
+    let s2 = new Sprite(loader.resources["images/orangelaser.png"].texture); 
+    let scaleFact = (blockWidth*2)/s1.width; 
+    s1.scale.x = s2.scale.x = scaleFact; 
+    s1.scale.y = s2.scale.y = scaleFact; 
+    s1.active = s2.active = false;
+    s1.visible = s2.visible = false;
+    bullets1[i] = s1;
+    bullets2[i] = s2;
+  }
+
+  // start gameLoop after everything has loaded and been initialized
+  // otherwise there can be race condition errors
+  app.ticker.add(delta => gameLoop(delta));
+
   showIntro();
 }
 
@@ -206,32 +250,25 @@ function setup() {
     gameoverMusic.pause();
   }
 
-  // assign sound shorthand objects
-  shipExpSnd    = loader.resources.shipExpSnd.sound;
-  laserSnd      = loader.resources.laserSnd.sound;
-  expSnd        = loader.resources.expSnd.sound; 
-  metalSnd      = loader.resources.metalSnd.sound;
-  thudSnd       = loader.resources.thudSnd.sound;
-  expSnd.volume = 0.2;
 
-  // setup healthbar sprites
-  healthSprite1 = new Sprite(loader.resources["images/Ship1HealthBar.png"].texture); 
-  healthSprite2 = new Sprite(loader.resources["images/Ship2HealthBar.png"].texture); 
+  // reset healthbar sizes 
   healthSprite1.height = healthSprite2.height = blockHeight;
   healthSprite1.width = healthSprite2.width = blockWidth*healthShip1;
   healthSprite1.x = blockWidth;
   healthSprite1.y = blockHeight;
   healthSprite2.x = sWidth - healthSprite2.width - blockWidth;
   healthSprite2.y = blockHeight;
+  // add them to stage
   app.stage.addChild(healthSprite1);
   app.stage.addChild(healthSprite2);
+
   //draw a white container around the healthbar, so it's easier to see it draining
   const hbcontour1 = new PIXI.Graphics();
   hbcontour1.beginFill(0xFFFFFF, 0);  //transparent fill?
   hbcontour1.lineStyle(blockWidth/9, 0xFFFFFF);
   hbcontour1.drawRect(healthSprite1.x, healthSprite1.y , healthSprite1.width, healthSprite1.height);
   app.stage.addChild(hbcontour1);
-  // same for other healtbar
+  // repeat for other healthbar
   const hbcontour2 = new PIXI.Graphics();
   hbcontour2.beginFill(0xFFFFFF, 0);  //transparent fill?
   hbcontour2.lineStyle(blockWidth/9, 0xFFFFFF);
@@ -239,15 +276,10 @@ function setup() {
   app.stage.addChild(hbcontour2);
 
 
-
-
-
   // some global setups
   nextBullet1 = 0; // next bullet sprite to be fired 
   nextBullet2 = 0;
   
-  //gameOverSplash = new Sprite(loader.resources["images/gameover.png"].texture);
-
 
   // create walls
   let speedWall1 = Math.random()*1.8+0.2;
@@ -256,53 +288,34 @@ function setup() {
   populateWall(walls[1], sWidth*0.5-blockWidth*0.5, Math.random()*1.1+0.2, 0);
   populateWall(walls[2], sWidth*0.5+blockWidth*0.5, speedWall2, 4);
 
-  // create bullets
+
+
+  //Reset blue ship position and speed 
+  ship1.vx = 0;
+  ship1.vy = 0;
+  ship1.position.set(sWidth*0.2, window.innerHeight / 2);
+  ship1.visible = true;
+  //Add the ship to the stage
+  app.stage.addChild(ship1);
+
+  //Reset red ship position and speed 
+  ship2.vx = 0;
+  ship2.vy = 0;
+  ship2.position.set(window.innerWidth - ship2.width - sWidth*0.2 , window.innerHeight / 2);
+  ship2.visible = true;
+  //Add the ship to the stage
+  app.stage.addChild(ship2);
+
+  // add bullets to stage
   for (var i = 0; i<maxBullets; i++) {
-    let s1 = new Sprite(loader.resources["images/redlaser.png"].texture); 
-    let s2 = new Sprite(loader.resources["images/orangelaser.png"].texture); 
-    let scaleFact = (blockWidth*2)/s1.width; 
-    s1.scale.x = s2.scale.x = scaleFact; 
-    s1.scale.y = s2.scale.y = scaleFact; 
-    s1.active = s2.active = false;
-    s1.visible = s2.visible = false;
-    bullets1[i] = s1;
-    bullets2[i] = s2;
     app.stage.addChild(bullets1[i]);
     app.stage.addChild(bullets2[i]);
   }
 
-
-  //Create the blue ship sprite
-  ship1 = new Sprite(loader.resources["images/BlueShip.png"].texture);
-	let scaleFact = (blockHeight*3)/ship1.height; 
-	ship1.scale.x = scaleFact; 
-	ship1.scale.y = scaleFact;
-  ship1.vx = 0;
-  ship1.vy = 0;
-  ship1.position.set(sWidth*0.2, window.innerHeight / 2);
-  //Add the ship to the stage
-  app.stage.addChild(ship1);
-
-  //Create the red ship sprite
-  ship2 = new Sprite(loader.resources["images/RedShip.png"].texture);
-	scaleFact = (blockHeight*3)/ship2.height; 
-	ship2.scale.x = scaleFact; 
-	ship2.scale.y = scaleFact;
-  ship2.vx = 0;
-  ship2.vy = 0;
-  ship2.position.set(window.innerWidth - ship2.width - sWidth*0.2 , window.innerHeight / 2);
-  //Add the ship to the stage
-  app.stage.addChild(ship2);
-
-	// kickoff game loop
-  if (!LOOPING) { 
-    LOOPING = true;
-    STATE = 'playing';
-    if (MUSIC) {
-      document.getElementById('combat').volume=MUSICVOLUME;
-      document.getElementById('combat').currentTime = 0;
-      document.getElementById('combat').play();
-    }
+  if (MUSIC) {
+    document.getElementById('combat').volume=MUSICVOLUME;
+    document.getElementById('combat').currentTime = 0;
+    document.getElementById('combat').play();
   }
 
 }
@@ -317,7 +330,7 @@ function gameLoop(delta){
 
 // play loop
 function play(delta) {
-  d.update();
+  dust.update();
 
   // react to keyboard input ship1
   if (Keys[87]) {
@@ -386,6 +399,7 @@ function play(delta) {
 	moveShip(2, delta);
 
 
+  timeForThanos--;
   // move walls        
   if (WALLMOVE) {
     for (var j = 0; j<nWalls; j++) {
@@ -395,10 +409,18 @@ function play(delta) {
         if (walls[j][i].vy > 0) { // if wall moving down 
           if (walls[j][i].y > sHeight) {
             walls[j][i].y = -blockHeight; // reposition offscreen at top
+            walls[j][i].thanos = false;
+            if (j==1 && timeForThanos <= 0) {
+              thanosBlock(walls[j][i]); 
+            }
           }
         } else if ( walls[j][i].vy < 0 )  { // if wall moving up 
           if (walls[j][i].y < -blockHeight) {
-            walls[j][i].y = sHeight;// + blockHeight; // reposition offscreen at bottom 
+            walls[j][i].y = sHeight;  // + blockHeight; // reposition offscreen at bottom 
+            walls[j][i].thanos = false;
+            if (j == 1 && timeForThanos<=0) {
+              thanosBlock(walls[j][i]); // thanos block time ?
+            }
           }
         }
       }
@@ -406,32 +428,21 @@ function play(delta) {
   }
 }
 
-function gameOverLoop(delta) {
-  // do nothing I guess ?
-}
-
-function showIntroLoop(delta) {
+function game_over(delta) {
   // move stars in starfield
-  let i = starField.children.length;
-  while (i--) {
-    let s = starField.children[i];
-    s.height = blockWidth/2;  // until I figure a way to scale perspective correctly 
-    s.width = blockWidth/2;    
-    var scale = SF_FOV/(SF_FOV + s.fz);
-    s.x = s.fx * scale + sWidth/2;
-    s.y = s.fy * scale + sHeight/2;
-    s.fz += s.vz;
-    if (s.fz < -SF_FOV) {
-      s.fz += 2*SF_FOV;
-      s.fx = Math.random()*1500-750; 
-      s.fy = Math.random()*1500-750; 
-    }
-  }
+  updateStarfield(delta);
 }
 
-function idleLoop(delta) {
+function intro(delta) {
+  // move stars in starfield
+  updateStarfield(delta);
+}
+
+function idle(delta) {
   //do nothing
 }
+
+
 
 
   </script>
