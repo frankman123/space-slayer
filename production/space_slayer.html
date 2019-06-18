@@ -301,10 +301,12 @@ function setup() {
   
 
   // create walls
-  let speedWall1 = Math.random()+1.5;
-  let speedWall2 = speedWall1 + (Math.random() > 0.5 ?  0.2 : -0.2);
+  let speedWall1 = (Math.random()+1.5)*Math.sign(Math.random()-0.5);
+  let speedWall2 =   (Math.random()+1.5)*Math.sign(Math.random()-0.5);
+ //speedWall1 + (Math.random() > 0.5 ?  0.2 : -0.2);
+  let speedWallMiddle = (Math.random()+1.5)*Math.sign(Math.random()-0.5);
   populateWall(walls[0], sWidth*0.5-blockWidth*1.5, speedWall1, 3);
-  populateWall(walls[1], sWidth*0.5-blockWidth*0.5, Math.random()*1.1+0.2, 0);
+  populateWall(walls[1], sWidth*0.5-blockWidth*0.5, speedWallMiddle, 0);
   populateWall(walls[2], sWidth*0.5+blockWidth*0.5, speedWall2, 3);
 
 
