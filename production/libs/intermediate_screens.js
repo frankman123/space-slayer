@@ -66,6 +66,7 @@ function showIntro() {
   app.stage.addChild(startText);
   startText.interactive = true;
   startText.click = function(e) {
+    waitForWalls()
     state = play;
     if (MUSIC) {
       gameoverMusic.pause();
@@ -163,6 +164,7 @@ function displayMenu() {
       document.getElementById('cantina').pause();  
       gameoverMusic.pause();  
     }
+    waitForWalls();
     state = play;  // change to play loop
     setTimeout(setup, 0)};
 
@@ -197,4 +199,26 @@ function displayMenu() {
       document.getElementById('cantina').play();  
     }
     setTimeout(showIntro, 0)};
+}
+
+
+// kludge to make sure all wall blocks are defined... don't know why sometimes they are not.
+function waitForWalls() {
+console.log("waiting for walls");
+  let ready = false;
+while (ready == false) {
+loop:
+  for (var j = 0; j<nBlocks; j++) {
+  	for (var z = 0 ; z < nWalls ; z++) {
+			if (walls[z][j] ===  undefined) {
+				console.log("z:"+z+" j:"+j);
+				console.log("not ready");
+				break loop;			
+			}
+		}
+	}
+	ready = true;
+}
+			
+
 }

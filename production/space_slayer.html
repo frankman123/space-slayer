@@ -420,6 +420,12 @@ function play(delta) {
   if (WALLMOVE) {
     for (var j = 0; j<nWalls; j++) {
       for (var i = 0; i<nBlocks; i++) {
+        // the following is a kludge because sometimes on restart a block is not defined and I dont know WHY!
+        // this will leave a pixelwide gap ... *sigh* ... but better than freezing (maybe if I break out of all loops?)
+        if (walls[j][i] === undefined) { 
+          console.log("failure! ... skipping this move!");  
+          break;
+        }
         walls[j][i].x += walls[j][i].vx * delta;
         walls[j][i].y += walls[j][i].vy * delta;
         if (walls[j][i].vy > 0) { // if wall moving down 
