@@ -452,5 +452,7 @@ function thanosBlock(s) {
 }
 
 function unThanosBlock(s) {
+  console.log("unthanos?");
+  s.thanos = false;
   s.texture = softTexture;
 }

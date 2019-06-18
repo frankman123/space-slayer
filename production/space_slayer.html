@@ -436,22 +436,28 @@ function play(delta) {
         if (walls[j][i].vy > 0) { // if wall moving down 
           if (walls[j][i].y > sHeight) {
             walls[j][i].y = -blockHeight; // reposition offscreen at top
-            walls[j][i].thanos = false;
+            if (j==1 && walls[j][i].thanos == true) {
+              unThanosBlock(walls[j][i]);
+            }
             if (j==1 && timeForThanos <= 0) {
               thanosBlock(walls[j][i]); 
+            } else if (j == 1 && walls[j][i].thanos) {
+              unThanosBlock(walls[j][i]);
             }
           }
         } else if ( walls[j][i].vy < 0 )  { // if wall moving up 
           if (walls[j][i].y < -blockHeight) {
             walls[j][i].y = sHeight;  // + blockHeight; // reposition offscreen at bottom 
-            walls[j][i].thanos = false;
+            if (j==1 && walls[j][i].thanos == true) {
+              unThanosBlock(walls[j][i]);
+            }
             if (j == 1 && timeForThanos<=0) {
               thanosBlock(walls[j][i]); // thanos block time ?
             }
           }
         }
       }
-    }
+    } 
   }
 }
 
