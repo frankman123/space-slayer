@@ -126,6 +126,7 @@ loader
   .add("thudSnd", "sounds/explosion1.{ogg,mp3}")
   .add("metalSnd", "sounds/metal.{ogg,mp3}")
   .add("expSnd", "sounds/thud.{ogg,mp3}")
+  .add("healSnd", "sounds/health_powerup_1.{ogg,mp3}")
   .load(initialSetup);
 
 
@@ -169,6 +170,7 @@ let expSnd;
 let metalSnd;
 let laserSnd;
 let thudSnd;
+let healSnd;
 
 var Keys = {};
 var fireKey1 = false;
@@ -209,9 +211,10 @@ function initialSetup() {
   shipExpSnd    = loader.resources.shipExpSnd.sound;
   laserSnd      = loader.resources.laserSnd.sound;
   expSnd        = loader.resources.expSnd.sound; 
+  expSnd.volume = 0.2;
   metalSnd      = loader.resources.metalSnd.sound;
   thudSnd       = loader.resources.thudSnd.sound;
-  expSnd.volume = 0.2;
+  healSnd       = loader.resources.healSnd.sound;
 
   // create health bars that indicate ships defence level
   healthSprite1 = new Sprite(loader.resources["images/Ship1HealthBar.png"].texture); 

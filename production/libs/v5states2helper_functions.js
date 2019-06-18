@@ -89,7 +89,7 @@ function moveBullets(n, delta) {
               if (w.thanos) {
                 b.visible = false;
                 let health = n == 1 ? healthShip1 : healthShip2;
-                setHealth(n, health + 3);
+                setHealth(n, health + 4);
               }else{
                 if (w.indestructible) {  // block is indestructible?
                   b.visible = false;
@@ -99,8 +99,12 @@ function moveBullets(n, delta) {
               }
               b.visible = false;
               w.visible = false;
-              w.thanos  = false;
-              explodeWall(w.x + w.width/2, w.y + w.height/2, n)
+              if (w.thanos) {
+                w.thanos  = false;
+                healSnd.play();
+              } else {
+                explodeWall(w.x + w.width/2, w.y + w.height/2, n)
+              }
               break;
             } // hit block 
           }  // block visible 
